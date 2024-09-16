@@ -53,7 +53,13 @@ struct allocman;
 typedef struct utspace_interface {
     /* size_bits is always the size in memory of allocated object. This differs to the untypedretype
        semantics of size_bits when cnodes are involved */
-    seL4_Word (*alloc)(struct allocman *alloc, void *utspace, size_t size_bits, seL4_Word object_type, const cspacepath_t *slot, uintptr_t paddr, bool canBeDevice, int *error);
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    seL4_Word (*alloc)(struct allocman *alloc, void *utspace, size_t size_bits, seL4_Word object_type,
+                       const cspacepath_t *slot, uintptr_t paddr, bool canBeDevice, seL4_Word core, int *error);
+#else
+    seL4_Word (*alloc)(struct allocman *alloc, void *utspace, size_t size_bits, seL4_Word object_type,
+                       const cspacepath_t *slot, uintptr_t paddr, bool canBeDevice, int *error);
+#endif
     void (*free)(struct allocman *alloc, void *utspace, seL4_Word cookie, size_t size_bits);
     int (*add_uts)(struct allocman *alloc, void *utspace, size_t num, const cspacepath_t *uts, size_t *size_bits, uintptr_t *paddr, int utType);
     uintptr_t (*paddr)(void *utspace, seL4_Word cookie, size_t size_bits);
