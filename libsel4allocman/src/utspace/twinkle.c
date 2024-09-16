@@ -55,8 +55,13 @@ int _utspace_twinkle_add_uts(allocman_t *alloc, void *_twinkle, size_t num, cons
     return 0;
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+seL4_Word _utspace_twinkle_alloc(allocman_t *alloc, void *_twinkle, size_t size_bits, seL4_Word type,
+                                 const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, seL4_Word core, int *error)
+#else
 seL4_Word _utspace_twinkle_alloc(allocman_t *alloc, void *_twinkle, size_t size_bits, seL4_Word type,
                                  const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, int *error)
+#endif
 {
     utspace_twinkle_t *twinkle = (utspace_twinkle_t *)_twinkle;
     size_t sel4_size_bits;
@@ -90,11 +95,25 @@ seL4_Word _utspace_twinkle_alloc(allocman_t *alloc, void *_twinkle, size_t size_
             i = j;
         }
     }
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    if (core > 0 && core < CONFIG_MAX_NUM_NODES) {
+        sel4_error = \
+            seL4_Untyped_RetypeCoreTagged(twinkle->uts[i].path.capPtr, type, sel4_size_bits,
+                                          slot->root, slot->dest, slot->destDepth, slot->offset, 1, core);
+    } else if (core == 0) {
+#endif
     /* if using inc retype then our offset calculation is effectively emulating the kernels calculations. This
      * means we track the free space of the untyped correctly, and since we are not going to try and free then
      * allocate again, this allocator can be used with either allocation scheme */
     sel4_error = seL4_Untyped_Retype(twinkle->uts[i].path.capPtr, type, sel4_size_bits, slot->root, slot->dest,
                                      slot->destDepth, slot->offset, 1);
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    } else {
+        ZF_LOGE("Failed to tag any object with invalid core affinity\n", -1);
+        SET_ERROR(error, 1);
+        return 0;
+    }
+#endif
     if (sel4_error != seL4_NoError) {
         /* Well this shouldn't happen */
         SET_ERROR(error, 1);
