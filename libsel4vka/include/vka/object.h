@@ -28,11 +28,16 @@ typedef struct vka_object {
     seL4_Word size_bits;
 } vka_object_t;
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_alloc_object_at_maybe_dev(vka_t *vka, seL4_Word type, seL4_Word size_bits, uintptr_t paddr,
+                                                bool can_use_dev, seL4_Word core, vka_object_t *result)
+#else
 /*
  * Generic object allocator used by functions below, can also be used directly
  */
 static inline int vka_alloc_object_at_maybe_dev(vka_t *vka, seL4_Word type, seL4_Word size_bits, uintptr_t paddr,
                                                 bool can_use_dev, vka_object_t *result)
+#endif
 {
     int error = -1;
     if (!(type < seL4_ObjectTypeCount)) {
@@ -52,14 +57,23 @@ static inline int vka_alloc_object_at_maybe_dev(vka_t *vka, seL4_Word type, seL4
     vka_cspace_make_path(vka, result->cptr, &path);
 
     if (paddr == VKA_NO_PADDR) {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+        error = vka_utspace_alloc_maybe_device_with_core(vka, &path, type, size_bits,
+                                                         can_use_dev, core, &result->ut);
+#else
         error = vka_utspace_alloc_maybe_device(vka, &path, type, size_bits, can_use_dev, &result->ut);
+#endif
         if (unlikely(error)) {
             ZF_LOGE("Failed to allocate object of size %lu, error %d",
                     BIT(size_bits), error);
             goto error;
         }
     } else {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+        error = vka_utspace_alloc_with_core_at(vka, &path, type, size_bits, paddr, core, &result->ut);
+#else
         error = vka_utspace_alloc_at(vka, &path, type, size_bits, paddr, &result->ut);
+#endif
         if (unlikely(error)) {
             ZF_LOGE("Failed to allocate object of size %lu at paddr %p, error %d",
                     BIT(size_bits), (void *)paddr, error);
@@ -83,7 +97,11 @@ error:
 static inline int vka_alloc_object_at(vka_t *vka, seL4_Word type, seL4_Word size_bits, uintptr_t paddr,
                                       vka_object_t *result)
 {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    return vka_alloc_object_at_maybe_dev(vka, type, size_bits, paddr, false, 0, result);
+#else
     return vka_alloc_object_at_maybe_dev(vka, type, size_bits, paddr, false, result);
+#endif
 }
 static inline int vka_alloc_object(vka_t *vka, seL4_Word type, seL4_Word size_bits, vka_object_t *result)
 {
@@ -205,8 +223,13 @@ static inline int vka_alloc_frame(vka_t *vka, uint32_t size_bits, vka_object_t *
 /* For arch specific allocations we call upon kobject to avoid code duplication */
 static inline int vka_alloc_frame_maybe_device(vka_t *vka, uint32_t size_bits, bool can_use_dev, vka_object_t *result)
 {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    return vka_alloc_object_at_maybe_dev(vka, kobject_get_type(KOBJECT_FRAME, size_bits),
+                                         size_bits, VKA_NO_PADDR, can_use_dev, 0, result);
+#else
     return vka_alloc_object_at_maybe_dev(vka, kobject_get_type(KOBJECT_FRAME, size_bits),
                                          size_bits, VKA_NO_PADDR, can_use_dev, result);
+#endif
 }
 
 static inline int vka_alloc_frame_at(vka_t *vka, uint32_t size_bits, uintptr_t paddr,
