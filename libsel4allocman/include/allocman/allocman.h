@@ -224,10 +224,15 @@ static inline cspacepath_t allocman_cspace_make_path(allocman_t *alloc, seL4_CPt
  *              as '1' can never be a valid object base address
  * @param canBeDev Whether this allocation can be satisified from a device region, provided that
  *  region is known to be actual RAM. Objects from device regions are not initialized (i.e. not zeroed)
+ * @param core (Dummy) core affinity to bind to object (if applicable)
  * @param _error (Optional) set to 0 on success
  *
  * @return Returns a cookie that can be used in future to free this allocation
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+seL4_Word allocman_utspace_alloc_with_core_at(allocman_t *alloc, size_t size_bits, seL4_Word type, const cspacepath_t *path,
+                                              uintptr_t paddr, bool canBeDev, seL4_Word core, int *_error);
+#endif
 seL4_Word allocman_utspace_alloc_at(allocman_t *alloc, size_t size_bits, seL4_Word type, const cspacepath_t *path, uintptr_t paddr, bool canBeDev, int *_error);
 
 /**
@@ -240,10 +245,19 @@ seL4_Word allocman_utspace_alloc_at(allocman_t *alloc, size_t size_bits, seL4_Wo
  * @param path A path to a location to put the allocated object (this must be a valid empty slot)
  * @param canBeDev Whether this allocation can be satisified from a device region, provided that
  *  region is known to be actual RAM. Objects from device regions are not initialized (i.e. not zeroed)
+ * @param core (Dummy) core affinity to bind to object (if applicable)
  * @param _error (Optional) set to 0 on success
  *
  * @return Returns a cookie that can be used in future to free this allocation
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline
+seL4_Word allocman_utspace_alloc_with_core(allocman_t *alloc, size_t size_bits, seL4_Word type,
+                                           const cspacepath_t *path, bool canBeDev, seL4_Word core, int *_error)
+{
+    return allocman_utspace_alloc_with_core_at(alloc, size_bits, type, path, ALLOCMAN_NO_PADDR, canBeDev, core, _error);
+}
+#endif
 static inline
 seL4_Word allocman_utspace_alloc(allocman_t *alloc, size_t size_bits, seL4_Word type, const cspacepath_t *path, bool canBeDev, int *_error)
 {
