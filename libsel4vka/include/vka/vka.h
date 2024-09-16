@@ -56,6 +56,10 @@ typedef void (*vka_cspace_free_fn)(void *data, seL4_CPtr slot);
  * @param res pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+typedef int (*vka_utspace_alloc_with_core_fn)(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
+                                              seL4_Word core, seL4_Word *res);
+#endif
 typedef int (*vka_utspace_alloc_fn)(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
                                     seL4_Word *res);
 
@@ -70,6 +74,10 @@ typedef int (*vka_utspace_alloc_fn)(void *data, const cspacepath_t *dest, seL4_W
  * @param cookie pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+typedef int (*vka_utspace_alloc_with_core_at_fn)(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
+                                                 uintptr_t paddr, seL4_Word core, seL4_Word *cookie);
+#endif
 typedef int (*vka_utspace_alloc_at_fn)(void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
                                        uintptr_t paddr, seL4_Word *cookie);
 
@@ -84,6 +92,10 @@ typedef int (*vka_utspace_alloc_at_fn)(void *data, const cspacepath_t *dest, seL
  * @param res pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+typedef int (*vka_utspace_alloc_maybe_device_with_core_fn)(void *data, const cspacepath_t *dest, seL4_Word type,
+                                                           seL4_Word size_bits, bool can_use_dev, seL4_Word core, seL4_Word *res);
+#endif
 typedef int (*vka_utspace_alloc_maybe_device_fn)(void *data, const cspacepath_t *dest, seL4_Word type,
                                                  seL4_Word size_bits, bool can_use_dev, seL4_Word *res);
 
@@ -128,6 +140,11 @@ typedef struct vka {
     vka_utspace_alloc_fn utspace_alloc;
     vka_utspace_alloc_maybe_device_fn utspace_alloc_maybe_device;
     vka_utspace_alloc_at_fn utspace_alloc_at;
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    vka_utspace_alloc_with_core_fn utspace_alloc_with_core;
+    vka_utspace_alloc_maybe_device_with_core_fn utspace_alloc_maybe_device_with_core;
+    vka_utspace_alloc_with_core_at_fn utspace_alloc_with_core_at;
+#endif
     vka_cspace_free_fn cspace_free;
     vka_utspace_free_fn utspace_free;
     vka_utspace_paddr_fn utspace_paddr;
@@ -208,6 +225,34 @@ static inline void vka_cspace_free_path(vka_t *vka, cspacepath_t path)
     vka_cspace_free(vka, path.capPtr);
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_utspace_alloc_with_core(vka_t *vka, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
+                                              seL4_Word core, seL4_Word *res)
+{
+    if (!vka) {
+        ZF_LOGE("vka is NULL");
+        return -1;
+    }
+
+    if (!res) {
+        ZF_LOGE("res is NULL");
+        return -1;
+    }
+
+    if (!vka->utspace_alloc) {
+        ZF_LOGE("Not implemented");
+        return -1;
+    }
+
+    if (core < 0 || core > CONFIG_MAX_NUM_NODES) {
+        ZF_LOGE("invalid core to bind");
+	return -1;
+    }
+
+    return vka->utspace_alloc_with_core(vka->data, dest, type, size_bits, core, res);
+}
+#endif
+
 static inline int vka_utspace_alloc(vka_t *vka, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
                                     seL4_Word *res)
 {
@@ -229,6 +274,34 @@ static inline int vka_utspace_alloc(vka_t *vka, const cspacepath_t *dest, seL4_W
     return vka->utspace_alloc(vka->data, dest, type, size_bits, res);
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_utspace_alloc_maybe_device_with_core(vka_t *vka, const cspacepath_t *dest, seL4_Word type,
+                                                           seL4_Word size_bits, bool can_use_dev, seL4_Word core, seL4_Word *res)
+{
+    if (!vka) {
+        ZF_LOGE("vka is NULL");
+        return -1;
+    }
+
+    if (!res) {
+        ZF_LOGE("res is NULL");
+        return -1;
+    }
+
+    if (!vka->utspace_alloc_maybe_device) {
+        ZF_LOGE("Not implemented");
+        return -1;
+    }
+
+    if (core < 0 || core > CONFIG_MAX_NUM_NODES) {
+        ZF_LOGE("invalid core to bind");
+        return -1;
+    }
+
+    return vka->utspace_alloc_maybe_device_with_core(vka->data, dest, type, size_bits, can_use_dev, core, res);
+}
+#endif
+
 static inline int vka_utspace_alloc_maybe_device(vka_t *vka, const cspacepath_t *dest, seL4_Word type,
                                                  seL4_Word size_bits, bool can_use_dev, seL4_Word *res)
 {
@@ -249,6 +322,32 @@ static inline int vka_utspace_alloc_maybe_device(vka_t *vka, const cspacepath_t 
 
     return vka->utspace_alloc_maybe_device(vka->data, dest, type, size_bits, can_use_dev, res);
 }
+
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_utspace_alloc_with_core_at(vka_t *vka, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
+                                                 uintptr_t paddr, seL4_Word core, seL4_Word *cookie)
+{
+    if (!vka) {
+        ZF_LOGE("vka is NULL");
+        return -1;
+    }
+    if (!cookie) {
+        ZF_LOGE("cookie is NULL");
+        return -1;
+    }
+    if (!vka->utspace_alloc_at) {
+        ZF_LOGE("Not implemented");
+        return -1;
+    }
+
+    if (core < 0 || core > CONFIG_MAX_NUM_NODES) {
+        ZF_LOGE("invalid core to bind");
+        return -1;
+    }
+
+    return vka->utspace_alloc_with_core_at(vka->data, dest, type, size_bits, paddr, core, cookie);
+}
+#endif
 
 static inline int vka_utspace_alloc_at(vka_t *vka, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits,
                                        uintptr_t paddr, seL4_Word *cookie)
@@ -302,4 +401,3 @@ static inline uintptr_t vka_utspace_paddr(vka_t *vka, seL4_Word target, seL4_Wor
 
     return vka->utspace_paddr(vka->data, target, type, size_bits);
 }
-
