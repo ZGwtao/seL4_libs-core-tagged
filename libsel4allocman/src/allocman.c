@@ -406,7 +406,12 @@ static int _refill_watermark(allocman_t *alloc)
                 error = allocman_cspace_alloc(alloc, &slot);
                 if (!error) {
                     /* Now try to allocate */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+                    cookie = _allocman_utspace_alloc(alloc, alloc->utspace_chunk[i].size_bits, alloc->utspace_chunk[i].type,
+                                                     &slot, ALLOCMAN_NO_PADDR, false, 0, &error, 0);
+#else
                     cookie = _allocman_utspace_alloc(alloc, alloc->utspace_chunk[i].size_bits, alloc->utspace_chunk[i].type, &slot, ALLOCMAN_NO_PADDR, false, &error, 0);
+#endif
                     if (!error) {
                         alloc->utspace_chunks[i][alloc->utspace_chunk_count[i]].cookie = cookie;
                         alloc->utspace_chunks[i][alloc->utspace_chunk_count[i]].slot = slot;
