@@ -22,7 +22,12 @@ typedef struct utspace_vka_cookie {
     seL4_Word type;
 } utspace_vka_cookie_t;
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline seL4_Word _utspace_vka_alloc(struct allocman *alloc, void *_vka, size_t size_bits, seL4_Word type,
+                                           const cspacepath_t *slot, uintptr_t paddr, bool canBeDevice, seL4_Word core, int *error)
+#else
 static inline seL4_Word _utspace_vka_alloc(struct allocman *alloc, void *_vka, size_t size_bits, seL4_Word type, const cspacepath_t *slot, uintptr_t paddr, bool canBeDevice, int *error)
+#endif
 {
     vka_t *vka = (vka_t *)_vka;
     size_t sel4_size_bits = get_sel4_object_size(type, size_bits);
@@ -33,9 +38,17 @@ static inline seL4_Word _utspace_vka_alloc(struct allocman *alloc, void *_vka, s
     }
     int _error;
     if (paddr == ALLOCMAN_NO_PADDR) {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+        _error = vka_utspace_alloc(vka, slot, type, sel4_size_bits, core, &cookie->original_cookie);
+#else
         _error = vka_utspace_alloc(vka, slot, type, sel4_size_bits, &cookie->original_cookie);
+#endif
     } else {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+        _error = vka_utspace_alloc_at(vka, slot, type, sel4_size_bits, paddr, core, &cookie->original_cookie);
+#else
         _error = vka_utspace_alloc_at(vka, slot, type, sel4_size_bits, paddr, &cookie->original_cookie);
+#endif
     }
     SET_ERROR(error, _error);
     if (!_error) {
