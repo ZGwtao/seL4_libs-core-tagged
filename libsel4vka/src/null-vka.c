@@ -43,6 +43,27 @@ static int utspace_alloc_at(void *data, const cspacepath_t *dest, seL4_Word type
     return -1;
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static int utspace_alloc_with_core(void *data, const cspacepath_t *dest, seL4_Word type,
+                                   seL4_Word size_bits, seL4_Word core, seL4_Word *res)
+{
+    return -1;
+}
+
+static int utspace_alloc_maybe_device_with_core(void *data, const cspacepath_t *dest, seL4_Word type,
+                               seL4_Word size_bits, bool can_use_dev, seL4_Word core, seL4_Word *res)
+{
+    return -1;
+}
+
+static int utspace_alloc_with_core_at(void *data, const cspacepath_t *dest, seL4_Word type,
+                                      seL4_Word size_bits, uintptr_t paddr, seL4_Word core, seL4_Word *res)
+{
+    return -1;
+}
+
+#endif
+
 static void utspace_free(void *data, seL4_Word type, seL4_Word size_bits,
                          seL4_Word target)
 {
@@ -63,6 +84,11 @@ void vka_init_nullvka(vka_t *vka)
         .utspace_alloc = utspace_alloc,
         .utspace_alloc_maybe_device = utspace_alloc_maybe_device,
         .utspace_alloc_at = utspace_alloc_at,
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+        .utspace_alloc_with_core = utspace_alloc_with_core,
+        .utspace_alloc_maybe_device_with_core = utspace_alloc_maybe_device_with_core,
+        .utspace_alloc_with_core_at = utspace_alloc_with_core_at,
+#endif
         .cspace_free = cspace_free,
         .utspace_free = utspace_free,
         .utspace_paddr = utspace_paddr
