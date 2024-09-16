@@ -198,6 +198,65 @@ static void track_obj(state_t *state, seL4_Word type, seL4_Word size_bits,
     }
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static int utspace_alloc_with_core(void *data, const cspacepath_t *dest, seL4_Word type,
+                                   seL4_Word size_bits, seL4_Word core, seL4_Word *res)
+{
+    assert(data != NULL);
+
+    state_t *s = (state_t *)data;
+
+    /* At this point I guess we could check that dest is a path that was
+     * previously returned from cspace_make_path, but there seems to be nothing
+     * in the interface that spells out that dest needs to have originated from
+     * this allocator and not another co-existing one.
+     */
+
+    vka_t *v = s->underlying;
+    int result = v->utspace_alloc_with_core(v->data, dest, type, size_bits, core, res);
+    if (result == 0 && res != NULL) {
+        track_obj(s, type, size_bits, *res);
+    }
+    return result;
+}
+
+static int utspace_alloc_maybe_device_with_core(void *data, const cspacepath_t *dest, seL4_Word type,
+                                                seL4_Word size_bits, bool can_use_dev, seL4_Word core, seL4_Word *res)
+{
+    assert(data != NULL);
+
+    state_t *s = (state_t *)data;
+
+    vka_t *v = s->underlying;
+    int result = v->utspace_alloc_maybe_device_with_core(v->data, dest, type, size_bits, can_use_dev, core, res);
+    if (result == 0 && res != NULL) {
+        track_obj(s, type, size_bits, *res);
+    }
+    return result;
+}
+
+static int utspace_alloc_with_core_at(void *data, const cspacepath_t *dest, seL4_Word type,
+                                      seL4_Word size_bits, uintptr_t paddr, seL4_Word core, seL4_Word *cookie)
+{
+    assert(data != NULL);
+
+    state_t *s = (state_t *)data;
+
+    /* At this point I guess we could check that dest is a path that was
+     * previously returned from cspace_make_path, but there seems to be nothing
+     * in the interface that spells out that dest needs to have originated from
+     * this allocator and not another co-existing one.
+     */
+
+    vka_t *v = s->underlying;
+    int result = v->utspace_alloc_with_core_at(v->data, dest, type, size_bits, paddr, core, cookie);
+    if (result == 0 && cookie != NULL) {
+        track_obj(s, type, size_bits, *cookie);
+    }
+    return result;
+}
+#endif
+
 static int utspace_alloc(void *data, const cspacepath_t *dest, seL4_Word type,
                          seL4_Word size_bits, seL4_Word *res)
 {
@@ -327,6 +386,11 @@ int vka_init_debugvka(vka_t *vka, vka_t *tracee)
     vka->utspace_alloc = utspace_alloc;
     vka->utspace_alloc_maybe_device = utspace_alloc_maybe_device;
     vka->utspace_alloc_at = utspace_alloc_at;
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    vka->utspace_alloc_with_core = utspace_alloc_with_core;
+    vka->utspace_alloc_maybe_device_with_core = utspace_alloc_maybe_device_with_core;
+    vka->utspace_alloc_with_core_at = utspace_alloc_with_core_at;
+#endif
     vka->cspace_free = cspace_free;
     vka->utspace_free = utspace_free;
 
