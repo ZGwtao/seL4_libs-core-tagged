@@ -71,6 +71,12 @@ void simple_make_vka(simple_t *simple, vka_t *vka)
     vka->utspace_alloc = NULL;
     vka->utspace_alloc_maybe_device = NULL;
     vka->cspace_free = NULL;
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    vka->utspace_alloc_at = NULL;
+    vka->utspace_alloc_with_core = NULL;
+    vka->utspace_alloc_with_core_at = NULL;
+    vka->utspace_alloc_maybe_device_with_core = NULL;
+#endif
     vka->utspace_free = NULL;
 }
 
