@@ -39,13 +39,13 @@ static inline seL4_Word _utspace_vka_alloc(struct allocman *alloc, void *_vka, s
     int _error;
     if (paddr == ALLOCMAN_NO_PADDR) {
 #ifdef CONFIG_CORE_TAGGED_OBJECT
-        _error = vka_utspace_alloc(vka, slot, type, sel4_size_bits, core, &cookie->original_cookie);
+        _error = vka_utspace_alloc_with_core(vka, slot, type, sel4_size_bits, core, &cookie->original_cookie);
 #else
         _error = vka_utspace_alloc(vka, slot, type, sel4_size_bits, &cookie->original_cookie);
 #endif
     } else {
 #ifdef CONFIG_CORE_TAGGED_OBJECT
-        _error = vka_utspace_alloc_at(vka, slot, type, sel4_size_bits, paddr, core, &cookie->original_cookie);
+        _error = vka_utspace_alloc_with_core_at(vka, slot, type, sel4_size_bits, paddr, core, &cookie->original_cookie);
 #else
         _error = vka_utspace_alloc_at(vka, slot, type, sel4_size_bits, paddr, &cookie->original_cookie);
 #endif
