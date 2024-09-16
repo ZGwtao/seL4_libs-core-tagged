@@ -255,7 +255,13 @@ static int _allocman_cspace_alloc(allocman_t *alloc, cspacepath_t *slot, int use
     }
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static seL4_Word _allocman_utspace_alloc(allocman_t *alloc, size_t size_bits, seL4_Word type,
+                                         const cspacepath_t *path, uintptr_t paddr, bool canBeDev,
+                                         seL4_Word core, int *_error, int use_watermark)
+#else
 static seL4_Word _allocman_utspace_alloc(allocman_t *alloc, size_t size_bits, seL4_Word type, const cspacepath_t *path, uintptr_t paddr, bool canBeDev, int *_error, int use_watermark)
+#endif
 {
     int root_op;
     int error;
@@ -281,7 +287,11 @@ static seL4_Word _allocman_utspace_alloc(allocman_t *alloc, size_t size_bits, se
     root_op = _start_operation(alloc);
     /* Attempt the allocation */
     alloc->utspace_alloc_depth++;
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    ret = alloc->utspace.alloc(alloc, alloc->utspace.utspace, size_bits, type, path, paddr, canBeDev, core, &error);
+#else
     ret = alloc->utspace.alloc(alloc, alloc->utspace.utspace, size_bits, type, path, paddr, canBeDev, &error);
+#endif
     alloc->utspace_alloc_depth--;
     if (!error) {
         _end_operation(alloc, root_op);
@@ -314,9 +324,26 @@ int allocman_cspace_alloc(allocman_t *alloc, cspacepath_t *slot)
     return _allocman_cspace_alloc(alloc, slot, 1);
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+seL4_Word allocman_utspace_alloc_with_core_at(allocman_t *alloc, size_t size_bits, seL4_Word type,
+                                              const cspacepath_t *path, uintptr_t paddr, bool canBeDev, seL4_Word core, int *_error)
+{
+    return _allocman_utspace_alloc(alloc, size_bits, type, path, paddr, canBeDev, core, _error, 1);
+}
+#endif
+
 seL4_Word allocman_utspace_alloc_at(allocman_t *alloc, size_t size_bits, seL4_Word type, const cspacepath_t *path, uintptr_t paddr, bool canBeDev, int *_error)
 {
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    /* Anyone calls from this interface does not have to
+       change their argument when allocating an untagged
+       object, the implicit '0' denotes that the object
+       to be allocated is not meant to be tagged */
+    return _allocman_utspace_alloc(alloc, size_bits, type, path,
+                                   paddr, canBeDev, 0, _error, 1);
+#else
     return _allocman_utspace_alloc(alloc, size_bits, type, path, paddr, canBeDev, _error, 1);
+#endif
 }
 
 static int _refill_watermark(allocman_t *alloc)
