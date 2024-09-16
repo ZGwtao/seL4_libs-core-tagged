@@ -235,8 +235,13 @@ static struct utspace_split_node **find_head_for_paddr(struct utspace_split_node
     return NULL;
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+seL4_Word _utspace_split_alloc(allocman_t *alloc, void *_split, size_t size_bits, seL4_Word type,
+                               const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, seL4_Word core, int *error)
+#else
 seL4_Word _utspace_split_alloc(allocman_t *alloc, void *_split, size_t size_bits, seL4_Word type,
                                const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, int *error)
+#endif
 {
     utspace_split_t *split = (utspace_split_t *)_split;
     size_t sel4_size_bits;
@@ -302,9 +307,23 @@ seL4_Word _utspace_split_alloc(allocman_t *alloc, void *_split, size_t size_bits
         /* use the first node for lack of a better one */
         node = head[size_bits];
     }
-    /* Perform the untyped retype */
-    sel4_error = seL4_Untyped_Retype(node->ut.capPtr, type, sel4_size_bits, slot->root, slot->dest, slot->destDepth,
-                                     slot->offset, 1);
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    if (core > 0 && core <= CONFIG_MAX_NUM_NODES) {
+        sel4_error = \
+            seL4_Untyped_RetypeCoreTagged(node->ut.capPtr, type, sel4_size_bits,
+                                          slot->root, slot->dest, slot->destDepth, slot->offset, 1, core);
+    } else if (core == 0) {
+#endif
+        /* Perform the untyped retype */
+        sel4_error = seL4_Untyped_Retype(node->ut.capPtr, type, sel4_size_bits, slot->root, slot->dest, slot->destDepth,
+                                         slot->offset, 1);
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    } else {
+        ZF_LOGE("Failed to tag any object with invalid core affinity\n", -1);
+        SET_ERROR(error, 1);
+        return 0;
+    }
+#endif
     if (sel4_error != seL4_NoError) {
         /* Well this shouldn't happen */
         ZF_LOGE("Failed to retype untyped, error %d\n", sel4_error);
