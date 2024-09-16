@@ -81,6 +81,26 @@ static void am_vka_cspace_free (void *data, seL4_CPtr slot)
  * @param res pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static int am_vka_utspace_alloc_maybe_device_with_core (void *data, const cspacepath_t *dest,
+                seL4_Word type, seL4_Word size_bits, bool can_use_dev, seL4_Word core, seL4_Word *res)
+{
+    int error;
+
+    assert(data);
+    assert(res);
+    assert(dest);
+
+    /* allocman uses the size in memory internally, where as vka expects size_bits
+     * as passed to Untyped_Retype, so do a conversion here */
+    size_bits = vka_get_object_size(type, size_bits);
+
+    *res = allocman_utspace_alloc_with_core((allocman_t *) data, size_bits, type, (cspacepath_t*)dest, can_use_dev, core, &error);
+
+    return error;
+}
+#endif
+
 static int am_vka_utspace_alloc_maybe_device (void *data, const cspacepath_t *dest,
                 seL4_Word type, seL4_Word size_bits, bool can_use_dev, seL4_Word *res)
 {
@@ -109,6 +129,13 @@ static int am_vka_utspace_alloc_maybe_device (void *data, const cspacepath_t *de
  * @param res pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static int am_vka_utspace_alloc_with_core (void *data, const cspacepath_t *dest, seL4_Word type,
+                                           seL4_Word size_bits, seL4_Word core, seL4_Word *res)
+{
+    return am_vka_utspace_alloc_maybe_device_with_core (data, dest, type, size_bits, false, core, res);
+}
+#endif
 static int am_vka_utspace_alloc (void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits, seL4_Word *res)
 {
     return am_vka_utspace_alloc_maybe_device(data, dest, type, size_bits, false, res);
@@ -125,6 +152,25 @@ static int am_vka_utspace_alloc (void *data, const cspacepath_t *dest, seL4_Word
  * @param res pointer to a location to store the cookie representing this allocation
  * @return 0 on success
  */
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static int am_vka_utspace_alloc_with_core_at (void *data, const cspacepath_t *dest, seL4_Word type,
+                                              seL4_Word size_bits, uintptr_t paddr, seL4_Word core, seL4_Word *res)
+{
+    int error;
+
+    assert(data);
+    assert(res);
+    assert(dest);
+
+    /* allocman uses the size in memory internally, where as vka expects size_bits
+     * as passed to Untyped_Retype, so do a conversion here */
+    size_bits = vka_get_object_size(type, size_bits);
+
+    *res = allocman_utspace_alloc_with_core_at((allocman_t *) data, size_bits, type, (cspacepath_t*)dest, paddr, true, core, &error);
+
+    return error;
+}
+#endif
 static int am_vka_utspace_alloc_at (void *data, const cspacepath_t *dest, seL4_Word type, seL4_Word size_bits, uintptr_t paddr, seL4_Word *res)
 {
     int error;
@@ -190,6 +236,11 @@ void allocman_make_vka(vka_t *vka, allocman_t *alloc)
     vka->utspace_alloc = &am_vka_utspace_alloc;
     vka->utspace_alloc_maybe_device = &am_vka_utspace_alloc_maybe_device;
     vka->utspace_alloc_at = &am_vka_utspace_alloc_at;
+#ifdef CONFIFG_CORE_TAGGED_OBJECT
+    vka->utspace_alloc_with_core = &am_vka_utspace_alloc;
+    vka->utspace_alloc_maybe_device_with_core = &am_vka_utspace_alloc_maybe_device;
+    vka->utspace_alloc_with_core_at = &am_vka_utspace_alloc_at;
+#endif
     vka->cspace_free = &am_vka_cspace_free;
     vka->utspace_free = &am_vka_utspace_free;
     vka->utspace_paddr = &am_vka_utspace_paddr;
