@@ -979,7 +979,11 @@ static ssize_t perform_sub_allocation(uintptr_t base, uintptr_t goal, allocman_t
     int error = allocman_cspace_alloc(alloc, &path);
     ZF_LOGF_IF(error, "allocman_cspace_alloc failed");
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    ut_space->alloc(alloc, token, next_size_bits, seL4_UntypedObject, &path, base, true, 0, &error);
+#else
     ut_space->alloc(alloc, token, next_size_bits, seL4_UntypedObject, &path, base, true, &error);
+#endif
     ZF_LOGF_IF(error, "ut_space.alloc failed");
 
     error = allocman_utspace_add_uts(alloc, 1, &path, &next_size_bits, &base, untyped_type);
