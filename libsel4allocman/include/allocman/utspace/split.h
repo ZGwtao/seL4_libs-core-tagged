@@ -44,7 +44,12 @@ typedef struct utspace_split {
 void utspace_split_create(utspace_split_t *split);
 int _utspace_split_add_uts(struct allocman *alloc, void *_split, size_t num, const cspacepath_t *uts, size_t *size_bits, uintptr_t *paddr, int utType);
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+seL4_Word _utspace_split_alloc(struct allocman *alloc, void *_split, size_t size_bits, seL4_Word type,
+                               const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, seL4_Word core, int *error);
+#else
 seL4_Word _utspace_split_alloc(struct allocman *alloc, void *_split, size_t size_bits, seL4_Word type, const cspacepath_t *slot, uintptr_t paddr, bool canBeDev, int *error);
+#endif
 void _utspace_split_free(struct allocman *alloc, void *_split, seL4_Word cookie, size_t size_bits);
 
 uintptr_t _utspace_split_paddr(void *_split, seL4_Word cookie, size_t size_bits);
