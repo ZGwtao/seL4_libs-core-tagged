@@ -236,10 +236,10 @@ void allocman_make_vka(vka_t *vka, allocman_t *alloc)
     vka->utspace_alloc = &am_vka_utspace_alloc;
     vka->utspace_alloc_maybe_device = &am_vka_utspace_alloc_maybe_device;
     vka->utspace_alloc_at = &am_vka_utspace_alloc_at;
-#ifdef CONFIFG_CORE_TAGGED_OBJECT
-    vka->utspace_alloc_with_core = &am_vka_utspace_alloc;
-    vka->utspace_alloc_maybe_device_with_core = &am_vka_utspace_alloc_maybe_device;
-    vka->utspace_alloc_with_core_at = &am_vka_utspace_alloc_at;
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+    vka->utspace_alloc_with_core = &am_vka_utspace_alloc_with_core;
+    vka->utspace_alloc_maybe_device_with_core = &am_vka_utspace_alloc_maybe_device_with_core;
+    vka->utspace_alloc_with_core_at = &am_vka_utspace_alloc_with_core_at;
 #endif
     vka->cspace_free = &am_vka_cspace_free;
     vka->utspace_free = &am_vka_utspace_free;
