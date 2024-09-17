@@ -94,6 +94,14 @@ error:
     return error;
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_alloc_object_with_core_at(vka_t *vka, seL4_Word type, seL4_Word size_bits,
+                                           uintptr_t paddr, seL4_Word core, vka_object_t *result)
+{
+    return vka_alloc_object_at_maybe_dev(vka, type, size_bits, paddr, false, core, result);
+}
+#endif
+
 static inline int vka_alloc_object_at(vka_t *vka, seL4_Word type, seL4_Word size_bits, uintptr_t paddr,
                                       vka_object_t *result)
 {
@@ -103,6 +111,15 @@ static inline int vka_alloc_object_at(vka_t *vka, seL4_Word type, seL4_Word size
     return vka_alloc_object_at_maybe_dev(vka, type, size_bits, paddr, false, result);
 #endif
 }
+
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_alloc_object_with_core(vka_t *vka, seL4_Word type,
+                                             seL4_Word size_bits, seL4_Word core, vka_object_t *result)
+{
+    return vka_alloc_object_with_core_at(vka, type, size_bits, VKA_NO_PADDR, core, result);
+}
+#endif
+
 static inline int vka_alloc_object(vka_t *vka, seL4_Word type, seL4_Word size_bits, vka_object_t *result)
 {
     return vka_alloc_object_at(vka, type, size_bits, VKA_NO_PADDR, result);
