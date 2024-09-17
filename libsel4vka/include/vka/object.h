@@ -198,6 +198,13 @@ static inline int vka_alloc_sched_context_size(UNUSED vka_t *vka, UNUSED vka_obj
 #endif
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_alloc_endpoint_with_core(vka_t *vka, seL4_Word core, vka_object_t *result)
+{
+    return vka_alloc_object_with_core(vka, seL4_EndpointObject, seL4_EndpointBits, core, result);
+}
+#endif
+
 static inline int vka_alloc_endpoint(vka_t *vka, vka_object_t *result)
 {
     return vka_alloc_object(vka, seL4_EndpointObject, seL4_EndpointBits, result);
@@ -323,6 +330,21 @@ vka_alloc_async_endpoint_leaky(vka_t *vka)
 LEAKY_SIZE_BITS(untyped)
 LEAKY_SIZE_BITS(frame)
 LEAKY_SIZE_BITS(cnode_object)
+
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+#define LEAKY_CORE_TAGGED(name) \
+    static inline seL4_CPtr vka_alloc_##name##_with_core_leaky(vka_t *vka, seL4_Word core) WARN_UNUSED_RESULT; \
+    static inline seL4_CPtr vka_alloc_##name##_with_core_leaky(vka_t *vka, seL4_Word core) \
+{\
+    vka_object_t object;\
+    if (vka_alloc_##name##_with_core(vka, core, &object) != 0) {\
+        return 0;\
+    }\
+    return object.cptr;\
+}
+
+LEAKY_CORE_TAGGED(endpoint)
+#endif
 
 #include <vka/arch/object.h>
 
