@@ -233,6 +233,13 @@ static inline int vka_alloc_reply(UNUSED vka_t *vka, vka_object_t *result)
 #endif
 }
 
+#ifdef CONFIG_CORE_TAGGED_OBJECT
+static inline int vka_alloc_reply_with_core(UNUSED vka_t *vka, seL4_Word core, vka_object_t *result)
+{
+    return vka_alloc_object_with_core(vka, seL4_ReplyObject, seL4_ReplyBits, core, result);
+}
+#endif
+
 static inline int vka_alloc_cnode_object(vka_t *vka, uint32_t slot_bits, vka_object_t *result)
 {
     return vka_alloc_object(vka, seL4_CapTableObject, slot_bits, result);
@@ -344,6 +351,7 @@ LEAKY_SIZE_BITS(cnode_object)
 }
 
 LEAKY_CORE_TAGGED(endpoint)
+LEAKY_CORE_TAGGED(reply)
 #endif
 
 #include <vka/arch/object.h>
